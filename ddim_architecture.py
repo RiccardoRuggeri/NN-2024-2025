@@ -136,7 +136,7 @@ class DDIM(nn.Module):
      timesteps = torch.linspace(self.timesteps-1, 0, num_steps, device=device)
 
      for i, t in enumerate(timesteps):
-      t_batch = torch.full(([shape],), t, device = device, dtype = torch.long)
+      t_batch = torch.full((shape[0],), t, device=device, dtype=torch.long)
       pred_noise = self(x, t_batch)
 
       alpha = self.alpha_bar[t_batch.long()]
