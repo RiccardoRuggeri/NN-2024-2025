@@ -21,16 +21,17 @@ import pytorch_lightning as ptl
 import torch.optim as optim
 
 class DDIM(nn.Module):
-  def __init__(self, channels = 3, time_dim = 128, timesteps = 1000):
+  def __init__(self, channels = 3, time_dim = 128, timesteps = 1000, device = 'cuda'):
     super().__init__()
     self.timesteps = timesteps
+    self.device = device
 
     #BETA SCHEDULER
-    beta = torch.linspace(0.0001, 0.02, timesteps)
-    self.alpha = 1. - beta
-    self.alpha_bar = torch.cumprod(self.alpha, dim = 0)
-    self.sqrt_alpha_bar = torch.sqrt(self.alpha_bar)
-    self.sqrt_one_minus_alpha_bar = torch.sqrt(self.sqrt_alpha_bar)
+    beta = torch.linspace(0.0001, 0.02, timesteps).to(device)
+    self.alpha = (1. - beta).to(device)
+    self.alpha_bar = torch.cumprod(self.alpha, dim = 0).to(device)
+    self.sqrt_alpha_bar = torch.sqrt(self.alpha_bar).to(device)
+    self.sqrt_one_minus_alpha_bar = torch.sqrt(self.sqrt_alpha_bar).to(device)
 
     #TIME EMBEDDING
     self.time_embedding = nn.Sequential(
@@ -53,6 +54,8 @@ class DDIM(nn.Module):
         self.Up_block(128, 64, time_dim)
     ])
     self.conv_out = nn.Conv2d(64, channels, 3, padding = 1)
+
+    self.to(device)
 
 
   def Down_block(self, in_ch, out_ch, time_dim):
