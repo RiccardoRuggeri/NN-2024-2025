@@ -135,19 +135,23 @@ class DDIM(nn.Module):
      if num_steps == None:
        num_steps = self.timesteps
 
-     x = torch.randn(shape, device = device)
-     timesteps = torch.linspace(self.timesteps-1, 0, num_steps, device=device)
 
-     for i, t in enumerate(timesteps):
-      t_batch = torch.full((shape[0],), t, device=device, dtype=torch.long)
-      pred_noise = self(x, t_batch)
+     with torch.no_grad():
+       x = torch.randn(shape, device = device)
+       timesteps = torch.linspace(self.timesteps-1, 0, num_steps, device=device)
 
-      alpha = self.alpha_bar[t_batch.long()]
-      alpha_prev = self.alpha_bar[(t_batch - 1).clamp(min=0).long()]
+       for i, t in enumerate(timesteps):
+        t_batch = torch.full((shape[0],), t, device=device, dtype=torch.long)
+        pred_noise = self(x, t_batch)
 
-      x0_pred = (x - torch.sqrt(1. - alpha) * pred_noise)/torch.sqrt(alpha)
+        alpha = self.alpha_bar[t_batch.long()]
+        alpha_prev = self.alpha_bar[(t_batch - 1).clamp(min=0).long()]
 
-      if i <len(timesteps) - 1:
-        x = torch.sqrt(alpha_prev) * x0_pred + torch.sqrt(1. - alpha_prev) * pred_noise
+        x0_pred = (x - torch.sqrt(1. - alpha) * pred_noise)/torch.sqrt(alpha.clamp(min=1e-5))
+        x0_pred = torch.clamp(x0_pred, -1.0, 1.0)
 
-     return x
+        if i <len(timesteps) - 1:
+          x = torch.sqrt(alpha_prev) * x0_pred + torch.sqrt(1. - alpha_prev) * pred_noise
+
+       return torch.clamp(x, -1.0, 1.0).detach() 
+
